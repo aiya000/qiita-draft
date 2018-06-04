@@ -1,121 +1,169 @@
-# Happyで詳細なエラーを表示する（行と列の番号,期待される字句）
+# Happyでパースエラーで列行番号とどんなミスマッチが起こったか報告する
 ## まとめ
-　`%errorhandlertype explist`を指定し、
-`State 現在の位置情報`モナドを用います。
+　コード全文は結構長いのでこちら :point_down:
 
-- 前者について
-    - [learning-Haskell/expected_tokens.y at 544245f1a960b9926f8662f65e590e731a320a40 - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/544245f1a960b9926f8662f65e590e731a320a40/Room/Happy/expected_tokens.y)
-- 後者について
-    - [learning-Haskell/line_column_numbers_on_an_error.y at 2c4805cdb471d492efa78dea4f96bda4f82f6619 - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/2c4805cdb471d492efa78dea4f96bda4f82f6619/Room/Happy/line_column_numbers_on_an_error.y)
+- [learning-Haskell/verbose_errors.y - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/3c9307776d0421a1aa3f1bea59adfd2593f519bc/Room/Happy/verbose_errors.y)
 
-## 概要
-　`1 + 2`, `3 * (2 + 1)`のような、
-自然数と`*`, `+`からなる入力を受理するのようなパーサをベースに、
-それぞれの機能を追加します。
+　重要なのは下記の2点です。
 
-## パースエラー時に「指定されたトークン」と「本来期待されていた字句」を表示する
+- lexerが`Token`と共に`TokenPos`を集積すること
+- `%errorhandlertype explist`
 
-- 具体的なコード
-    - [learning-Haskell/expected_tokens.y at 544245f1a960b9926f8662f65e590e731a320a40 - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/544245f1a960b9926f8662f65e590e731a320a40/Room/Happy/expected_tokens.y)
+## 仮定する知識
 
-　パースエラー時に`{actual-wrong-token} is taken, but {expected-correct-tokens} are expected`みたいなやつを表示させます。
+1. happyでパーサを書ける
+1. レキサ、パーサが何をするものか、なんとなくだけどわかる
+1. MonadTransとGeneralizedNewtypeDerivingでモナドを組み立てられる
 
-これはおおよそ、happyのファイル（.y or .ly）に`%errorhandlertype explist`を指定するだけで済みます。
+- optional（わかるとソースが見やすい）
+    1. lensが使える
 
-　`%errorhandlertype explist`を指定すると、
-`%error`に指定したparseError関数 (`%error { parseError }`) に求められる型が
-`[Token] -> a`から`([Token], [String]) -> a`に変わります。
+## ここでしたいこと
+　「Happyでパースエラーで列行番号とどんなミスマッチが起こったか報告する」とは？  
+それは…
 
-ここで`[String]`は「次に期待されていたトークンのリスト」
-（またhappyがデフォルトで要求する`[Token]`は「入力のうち未だ解析していない（されなかった）、トークンの残り分）
-ですので「次の入力としてysを期待していたが、xが入力された」ということがパースエラーで報告できるようになります。
+　happyはデフォルトで、詳細なパースエラーを表示するための機能を有効にしていません。
 
-例
-```haskell
-...
-%error { parseError }
-...
-{
-parseError :: ([Token], [String]) -> a
-parseError (causeOfFail:_) expected = error $ show causeOfFail ++ " is taken, but " ++ show expected ++ " are expected"
-parseError [] _ = error "a really unexpected condition was detected"
-
-...
-}
-```
-
-（ちなみにですが`QuasiQuotes`拡張とhereパッケージを使うとstring interpolationsで綺麗に書けます。
-```haskell
-{-# LANGUAGE QuasiQuotes #-}
-
-import Data.String.Here (i)
-
-parseError :: ([Token], [String]) -> a
-parseError (x:_) ys = error [i|${show x} is taken, but ${show ys} are expected|]
-parseError []    _  = error "a really unexpected condition was detected"
-```
-）
-
-　これで、異常な入力`"10 20 30"`に対するパースエラーの内容が :point_down: のようになります。
+ですので、パースエラーが発生した際に以下のような情報量の少ない報告しかできません。  
+これは`1 + 2 * 3`のような、
+数値と`+`, `*`からなる入力を受理するパーサに、
+異常な入力`1 2`を食わせた例です。
 
 ```
-explist.hs: Parse error, [TokenInt 20,TokenInt 30] is taken, but ["'+'","'*'"] are expected
-CallStack (from HasCallStack):
-error, called at expected_tokens.hs in main:Main
+parse error with a token "2"
 ```
 
-## エラーが発生した箇所（問題のトークンがある場所）を表示する
+　しかし実用上、
+どんな異常な入力が入力されて、そして
+「本来どんな入力が期待されていたか」
+「どの行の何文字目で異常な入力が行われたのか」
+が必要だと思います。
 
-- 具体的なコード
-    - [learning-Haskell/line_column_numbers_on_an_error.y at 2c4805cdb471d492efa78dea4f96bda4f82f6619 - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/2c4805cdb471d492efa78dea4f96bda4f82f6619/Room/Happy/line_column_numbers_on_an_error.y)
-
-　:point_down: みたいなパースエラーを表示するようにします。
+例えば以下のように。
 
 ```
-example.hs:2:1: parse error, ...
-           ^ ^
-        こんなやつ
+parse error at (Line=1, Column=3), 2 is got, but ['+', '*'] are expected.
 ```
 
-　これは[公式](https://sites.google.com/site/paclearner/happy_jp/sec-monads-html)でも解説されていますが、
-説明があっさりしすぎていてわからなかった :sob:
+　この記事ではそこまでの手立てを、
+非負整数と`+`, `*`を受理する実際のコードの流れに沿ってまとめます :dog2:
 
-これは以下の2点に要約できます。
+　繰り返しになりますが、
+コード全文は以下になります
 
-1. レキサ（字句解析器）にトークンと一緒にトークンの位置情報も返す
-2. happyの側のトークン宣言にて、トークンと位置情報のペアを期待する
+:point_down: :point_down: :point_down:
 
-### 1について
-　パーサは、parseError関数以外への関心は必要なく、
-レキサに重要性がかかっています。
+- [learning-Haskell/verbose_errors.y - aiya000/learning-Haskell - GitHub](https://github.com/aiya000/learning-Haskell/blob/3c9307776d0421a1aa3f1bea59adfd2593f519bc/Room/Happy/verbose_errors.y)
+
+:point_up: :point_up: :point_up:
+
+## 解説
+### おおまかな流れ
+
+1. 入力をレキサに渡す `lexer :: String -> Processor [(Token, TokenPos)]`
+1. レキサの結果をパーサに渡す `parser :: [(Token, TokenPos)] -> Processor Expr`
+    - parserはhappyが生成します
+1. パーサは正常な入力を受理し結果（`Expr`、もしくはパースエラーを返します `:: Either String Expr`
+
+### 始まり
+　やはり最初に見るのはmainですよね。
+
+　mainはrunAppに各入力を渡しています。
 
 ```haskell
-type Parser a = State TokenPos a
+main :: IO ()
+main = do
+  -- This should be succeed
+  print $ runApp "1 + 2 * (3 * 4)"
+  -- These should be failed
+  print $ runApp "1 + *"
+  print $ runApp "10 20"
+  print $ runApp "+"
+```
 
+runAppは入力をレキサに渡し、
+さらにその結果をパーサに渡します。
+
+```haskell
+-- | Run 'lexer' and 'parser'
+runApp :: String -> Either String Expr
+runApp code = runProcessor $ lexer code >>= parser
+```
+
+runProcessorは、
+lexerとparserの間の文脈を持つ`Processor`モナドを実行するものです。
+
+`Processor`モナドは以下の文脈を保持します。
+
+1. lexerにて、現在見ている位置情報（コード上での位置）を保持する（`MonadState TokenPos`）
+1. lexer 、parserにて、もし異常な入力があった場合に異常値を返す（`MonadError String`）
+
+```haskell
+-- | A monad for between the lexer and the parser
+newtype Processor a = Processor
+  { unProcessor :: ExceptT String (State TokenPos) a
+  } deriving ( Functor, Applicative, Monad
+             , MonadError String
+             , MonadState TokenPos
+             )
+
+-- | Run and extract a 'Processor'
+runProcessor :: Processor a -> Either String a
+runProcessor = unProcessor
+               >>> (runExceptT :: ExceptT String (State TokenPos) a -> State TokenPos (Either String a))
+               >>> (flip evalState initialPos :: State TokenPos (Either String a) -> Either String a)
+  where
+    -- All code starts with (1, 1)
+    initialPos = TokenPos 1 1
+```
+
+これはhappyの`%monad { Processor }`に指定されていて、
+各所…特に`parseError`を`a`から`Processor a`に持ち上げます。
+
+`Token`はある文字またはひとかたまりの文字列を表すデータ型
+
+```haskell
+-- | A result of the lexer
 data Token = TokenInt Int
            | TokenPlus
            | TokenTimes
            | TokenParensBegin
            | TokenParensEnd
   deriving (Show)
+```
 
+`TokenPos`は位置情報
+
+```haskell
+-- | A position of 'Token' on a code
 data TokenPos = TokenPos
-  { colNum  :: Int
-  , lineNum :: Int
+  { lineNum :: Int
+  , colNum  :: Int
   } deriving (Show)
+```
 
-_colNum :: Lens' TokenPos Int
-_colNum = lens colNum $ \pos n -> pos { colNum = n }
+そして`Expr`は、このコードの最終結果を表す抽象構文木です。
 
-_lineNum :: Lens' TokenPos Int
-_lineNum = lens lineNum $ \pos n -> pos { lineNum = n }
+```haskell
+-- | A result of the parser
+data Expr = ExprPlus Expr Expr
+          | ExprTimes Expr Expr
+          | ExprParens Expr
+          | ExprInt Int
+  deriving (Show)
+```
 
-parseError :: [(Token, TokenPos)] -> Parser a
-parseError xs = do
-  let TokenPos c l = snd $ head xs
-  error [i|Parse error at (${show c}, ${show l}) with ${show $ map fst xs}|]
+### lexer
+　lexerは文字を、
+そのコード上の位置情報（`TokenPos`）と共に
+トークン（`Token`）に変換しつつ、
+現在位置を適切に加算していきます。
 
-lexer :: String -> Parser [(Token, TokenPos)]
+なおパターンマッチの`_`パターンの句は非負整数を変換しています。
+
+```haskell
+-- | Tokenize a code with the token position
+lexer :: String -> Processor [(Token, TokenPos)]
 lexer xs = do
   pos <- get
   case xs of
@@ -123,15 +171,63 @@ lexer xs = do
     ('(':xs) -> do
       _colNum <+= 1
       ((TokenParensBegin, pos):) <$> lexer xs
-    ...
+    (')':xs) -> do
+      _colNum <+= 1
+      ((TokenParensEnd, pos):) <$> lexer xs
+    ('*':xs) -> do
+      _colNum <+= 1
+      ((TokenTimes, pos):) <$> lexer xs
+    ('+':xs) -> do
+      _colNum <+= 1
+      ((TokenPlus, pos):) <$> lexer xs
+    (' ':xs) -> do
+      _colNum <+= 1
+      lexer xs
+    ('\n':xs) -> do
+      _lineNum <+= 1
+      lexer xs
+    _ -> do
+      let ((y, ys):_) = lex xs
+      case readMay y of
+        Nothing -> throwError [i|fatal error! please open an issue with this message X( `couldn't read ${show y}`|]
+        Just z  -> do
+          _colNum <+= length y
+          ((TokenInt z, pos):) <$> lexer ys
 ```
 
-### 2について
-　parseError以外で位置情報は必要ないので、
-`_`パターンで握りつぶしてしまいます。
+### parser
+　ここが肝です。
+parserはhappyによって記述されます。
 
-`%token`の受け取る各トークンの右項はパターンなので、
-`_`が使えます。
+```haskell
+%name parser
+%tokentype { (Token, TokenPos) }
+
+%token
+    int { (TokenInt $$, _)      }
+    '+' { (TokenPlus, _)        }
+    '*' { (TokenTimes, _)       }
+    '(' { (TokenParensBegin, _) }
+    ')' { (TokenParensEnd, _)   }
+
+%left '*'
+%left '+'
+
+%%
+
+Expr : Expr '+' Expr { ExprPlus $1 $3  }
+     | Expr '*' Expr { ExprTimes $1 $3 }
+     | '(' Expr ')'  { ExprParens $2   }
+     | int           { ExprInt $1      }
+```
+
+`%tokentype { (Token, TokenPos) }`はparserとparseErrorがその列を引数として受け取ることを表します。
+（`parser :: [(Token, TokenPos)] -> ?`）
+
+`%token` はその引数の値がパーサ中でどのように表れるかを示します。
+
+ただしここで`TokenPos`値が全て捨てられていることが重要です。
+なぜなら今回、`TokenPos`はparseErrorによってのみ利用されるからです。
 
 ```haskell
 %token
@@ -142,17 +238,89 @@ lexer xs = do
     ')' { (TokenParensEnd, _)   }
 ```
 
-…
+以下がパーサの実部です。
+CFGとして見れるのではないかと思います。
 
-以上です！
+この`Expr`パーサは推論によって戻り型が（データ型の方の）`Expr`であることを決定されます。
 
-- - -
+```haskell
+Expr : Expr '+' Expr { ExprPlus $1 $3  }
+     | Expr '*' Expr { ExprTimes $1 $3 }
+     | '(' Expr ')'  { ExprParens $2   }
+     | int           { ExprInt $1      }
+```
 
-## 参考ページ
+#### parseError
+　ここで異常な入力、
+例えば`1 2`などであったときに
+```
+Expr '+' Expr -- "1 + 2"などを受理する
+Expr '*' Expr -- "3 * 4"などを
+'(' Expr ')'  -- "(5)"など
+int           -- "10"な
+```
 
+その`1`は形式`int`によって受理されますが、
+全体`1 2`は`int int`や`Expr int`, `Expr Expr`なのでいずれによっても受理されず、
+消費されなかったトークン列`[TokenInt 2]`と共に
+parseError関数が呼ばれます。
+
+```haskell
+-- | Throw a error with the reason (actual and expected values, where the parser is failed)
+parseError :: ([(Token, TokenPos)], [String]) -> Processor a
+parseError (((actual, pos):_), expected)
+  = throwError [i|parse error at ${show $ pretty pos}, ${show $ pretty actual} is got, but ${show $ pretty expected} are expected.|]
+parseError x
+  = throwError [i|fatal error! please open an issue with this message X( `${show $ pretty x}`|]
+```
+
+#### %errorhandlertype explist について
+　もし`%errorhandlertype explist`が指定されていなければ、
+parseErrorの型は`[(Token, TokenPos)] -> Processor a`です。
+
+`%errorhandlertype explist`はその引数に`[String]`を追加し、
+`([(Token, TokenPos)], [String]) -> Processor a`にします。
+
+`[String]`は「本来どんな入力が期待されていたか」です。
+
+今回の入力`1 2`の`2`に対してparseErrorが呼び出さますが、
+本来そこで期待されていたのは`+`と`*`です。
+
+ですのでその場合に`[String]`には`['+', '*']`が渡されます。
+
+### 以上
+　以上、
+
+- lexerが`Token`と共に`TokenPos`を集積すること
+- `%errorhandlertype explist`
+
+により、パースエラー（`parseError`）で下記のようなベーシックで実用的な情報を報告することができました。
+
+```
+parse error at (Line=1, Column=3), 2 is got, but ['+', '*'] are expected.
+```
+
+## まとめ
+　レキサの側でトークンだけでなく、
+元コード上でのそのトークンの位置情報を返すようにし、
+パーサの側でパースエラーが起きたときにその位置情報を利用する。
+
+　`%errorhandlertype explist`を指定することで`%error`に指定した関数で
+「入力のうち消費できなかったもの（actual）」と共に
+「ここで本来期待されていた入力（expected）」を受け取れるようにし、
+パースエラーが起きたときにその情報を利用する。
+
+　この2点によりパースエラーで、
+parsec系のパーサコンビネータライブラリでパーサを手書きしたときと比べても
+不足ないであろう情報量を報告することができました。
+
+# 参考ページ
+
+- [2.5. Monadic Parsers](https://www.haskell.org/happy/doc/html/sec-monads.html#sec-line-numbers)
+- [sec-monads.html - Pac Learner](https://sites.google.com/site/paclearner/happy_jp/sec-monads-html)
 - [haskell - How to get nice syntax error messages with Happy? - Stack Overflow](https://stackoverflow.com/questions/5430700/how-to-get-nice-syntax-error-messages-with-happy)
-- [Toward better GHC syntax errors - Dan Aloni](http://blog.aloni.org/posts/toward-better-ghc-syntax-errors/)
-    - `%errorhandlertype explist`について書かれてなくて難しかった
 - [RFC: On parse error - show the next possible tokens by da-x - Pull Request #46 - simonmar/happy - GitHub](https://github.com/simonmar/happy/pull/46)
-- [sec-monads.html - Pac Learner](https://www.haskell.org/happy/doc/html/sec-monads.html#sec-line-numbers)
-- [sec-monads.html - Pac Learner 日本語](https://sites.google.com/site/paclearner/happy_jp/sec-monads-html)
+
+# 蛇足
+　今回は簡単のためlexerとparserに共通のProcessorモナドを使用していますが、
+練り込み度によりparserでは`MonadState TokenPos`を使用しない等の方法を取ることもできるかと思います。
