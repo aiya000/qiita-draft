@@ -61,6 +61,11 @@ sugar ^. field @"sweet"
 sugar & field @"moon" .~ 10003
 ```
 
+パフォーマンスについてですが、アルティメットGHCマジックにより、（Genericインスタンスを？）手書きでない限りmakeLensesと同一レベルのようです。
+（-O1では。-O1以外だとどうなんだろ。）
+
+> The runtime characteristics of the derived optics is in most cases identical at -O1, in some cases only slightly slower than the hand-written version. This is thanks to GHC's optimiser eliminating the generic overhead.
+
 ## DeriveGenericの概観
 
 これについては多く語られたものと思いますので、ここでは導入のために大雑把に済ませます :eyes:
@@ -180,13 +185,12 @@ newtype Skeleton = Skeleton
   } deriving (Generic, Show)
 
 data Sans = Sans
-  { skeleton :: String
+ skeleton :: String
   , lazy :: Int
   } deriving (Generic, Show)
 
 sans :: Sans
 sans = Sans ";E" 1
-
 ```
 
 ### Lens
@@ -277,13 +281,9 @@ upcast sans :: Skeleton
 -- Skeleton {skeleton = ";E"}
 ```
 
-っていうかこれめっちゃすごくないですか。
-
 #### the
 
 theはfield・position・typicalの全てを合わせたコンビネータ―です。
-
-3つのコンビネータ―のいずれも扱うカインドが違うので、渡されたカインドによってtheがどのコンビネータ―を演じれば良いのかが判別できるのですね。
 
 - `Symobl` ==> `field`
 - `Nat` ==> `position`
@@ -301,7 +301,61 @@ sans ^. the @"skeleton" -- I'm Sans. Sans the skeleton ;E
 
 ### Prism
 
-TODO
+generic-lensはlensesの他にprismsも提供しています。
+いずれもその値コンストラクタについて言及するもののようです。
+
+#### \_Ctor
+
+\_Ctorは値コンストラクタ名を引数に取って、それにアクセスします。
+
+```haskell
+sugar  ^? _Ctor @"Sugar"
+toriel ^? _Ctor @"Toriel"
+-- Just ("me",1000)
+-- Just (":D",())
+
+asgore ^? _Ctor @"Toriel"
+-- Nothing
+```
+
+### \_Typed
+
+\_Typedはレコードの型を受け取り、その値を返します。
+
+```haskell
+asgore ^? _Typed @String
+toriel ^? _Typed @(String, ())
+-- Just ":)"
+-- Just (":D",())
+```
+
+`Fluffy`の`String`は`Asgore`ですが、`Toriel`は`(String, ())`であるため、以下は失敗します。
+
+```haskell
+toriel ^? _Typed @String
+-- Nothing
+```
+
+`()`な`Fluffy`の値コンストラクタは存在しないため、以下はコンパイル不可です。
+
+```haskell
+-- Not able to
+toriel ^? _Typed @()
+```
+
+### \_As
+
+the同様、\_Asは\_Ctor, \_Typedの合わせです。
+
+- `Symbol` => `_Ctor`
+- `Type` => `_Typed`
+
+```haskell
+toriel ^? _As @"Toriel"
+asgore ^? _As @String
+-- Just (":D",())
+-- Just ":)"
+```
 
 ### ???
 
@@ -317,11 +371,15 @@ constraints' @Num (twice @Identity) point
 -- Identity (Point 200 400)
 ```
 
-ってあれ？
-めっちゃすごくて感動しましたが、もはやLensもPrismも関係なくなってないですか。
-あれ？
+うおおおおお！ めっちゃすごくて感動しました！
+
+ってあれ？ これもうLensもPrismも関係ないじゃないですか。
 
 ## まとめ
+
+generic-lensは以下のlensesとprismsを提供してくれました。
+またmakeLensesとは違いGenerics由来なので、TemplateHaskellから来る不毛な戦いに遭遇することを回避できます。
+（まあそのような不毛な戦いに遭遇することは、あまり多くないとは思いますが :thinking:）
 
 ```haskell
 >>> :t field
