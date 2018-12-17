@@ -1,11 +1,16 @@
 # 「正規表現はあんまり使わないかな。パーサー使うから」っていう人の気持ちがわかった！
 
 皆さん、[Happy メリー Haskell クリスマス](https://qiita.com/advent-calendar/2018/haskell2) :snowman:
-今日は文字列検索等で、正規表現ライブラリではなくパーサーコンビネーターライブラリを使う人（僕）の気持ちを理解してもらおうと思います！
+アドベントカレンダーお疲れさまでした。
+
+- - -
+
+今日は文字列検索等で正規表現ライブラリではなく、パーサーコンビネーターライブラリを使うようになった人（僕）の、それまで道筋を描いてみます。
+そう、パーサーコンビネーターを使いたがる人は決して異常者ではないのです！
 
 ![ペロくん](pero.jpg)
 
-## 用語
+## 前置き（用語）
 
 本記事での「正規表現（ライブラリ）」とは以下のような、文字列リテラル（または文字列ライクなリテラル）で書かれた表現を解釈してから処理をする方式を指します。
 
@@ -52,20 +57,13 @@ Right ("hi",10)
 
 ## なぜ正規表現でなくパーサー（コンビネーター）を使うのか
 
-パーサーコンビネーターは正規表現の上位互換（※）であり、可読性が高いからです。
-またそのプログラミング言語が静的型付きであれば、パーサーコンビネーターには静的型検査が加わります。
-（正規表現は文字列リテラルを用いるので、その多くの場合、静的型検査は加わらない。）
+それは**可読性が高い**からです。
+またそのプログラミング言語が静的型付きであれば、パーサーコンビネーターには静的型検査が加わるからです。
 
-※
-実際にパーサーコンビネーターが正規表現のスーパーセットであるかは不明。
-ある場合に正規表現を使いたいときに、そこでパーサーコンビネーターを使うことができる……程度の意味合い。
+正規表現で文字列リテラルを用いる場合の多くは、静的型検査は加わらないでしょう。
 
-:metal::relieved::metal:
-
-体感してみましょう。
-僕の.ctags.d/kotlin.ctagsの一部を見てみましょう。
-
-これはclassの検知をするための正規表現です。
+可読性の高さを感じてもらうために、僕の.ctags.d/kotlin.ctagsの一部を見てみます。
+これはKotlinのclass名の検知をするための正規表現です。
 
 ```
 /^[ \t]*(private|protected|public)?[ \t]*((abstract|final|sealed|implicit|lazy)[ \t]*)*(data[ \t]*)?class[ \t]+([a-zA-Z0-9_]+)/\8/
@@ -73,22 +71,79 @@ Right ("hi",10)
 
 ……？？？ :thinking:
 **激ヤバ**なのがわかるかと思います。
+正直僕も、何を言っているかわからないです……。
 
-（もっといいctagsの書き方あったりしませんか？）
-
+ここで「彼」に助けを呼んでみます。
 助けてﾊﾟｯｻｺﾝﾋﾞﾈｰﾖーー！！
 
+（Haskellのmegaparsecでの例）
+
 ```haskell
+type Parser = Parsec Void String
+
+-- 💛💚💙
+parseClass :: Parser String
+parseClass = do
+  P.optional $ token parseVisibility
+  P.many $ token parseClassKind
+  P.optional . token $ P.string "data"
+  token $ P.string "class"
+  name <- P.many P.alphaNumChar
+  P.many P.anyChar
+  pure name
+
+parseVisibility :: Parser String
+parseVisibility =
+    P.string "private" <|>
+    P.string "protected" <|>
+    P.string "public"
+
+parseClassKind :: Parser String
+parseClassKind =
+    P.string "abstract" <|>
+    P.string "final" <|>
+    P.string "sealed"
+
+blank :: Parser String
+blank = P.many P.spaceChar
+
+token :: Parser String -> Parser String
+token parseWord = do
+  blank
+  word <- parseWord
+  blank
+  pure word
+```
+
+おお、メンテナブルなコードができました！
+
+確認
+
+```haskell
+main :: IO ()
+main = do
+  let parseTest' = parseTest @Void @String
+  parseTest' parseClass "public data class You(val me: String)"
+  parseTest' parseClass "sealed class Product {}"
+```
+
+出力
+
+```
+"You"
+"Product"
 ```
 
 ｱｯｳｳｳｳｰﾝ!!
-パーサーコンビネーター使いてえー！！！
+文字列検索にはパーサーコンビネーター使いたいーﾝｵｵｵｵ!
 
-1. なぜならパーサとは単純に正規表現を内包していて、それでいて型安全だからだ！
+### 正規表現コンビネーター（？）
 
-## 正規表現の問題
+ここまでで「文字列での正規表現の表現」に限界があることがわかりました。
+でもいきなりそこでパーサーコンビネーターを持ち出すのはちょっと……ね？
 
-2. 文字列の正規表現による（わかりにくく誤った）例
+うう〜ん表現が文字列じゃなくて、コンビネーターな正規表現ライブラリがあると、ちょうどいいんだけど。
+そうboost::xpressiveのことです！
 
 ## そのboost::xpressive (C++) による解決
 
