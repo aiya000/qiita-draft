@@ -1,0 +1,13 @@
+# DerivingViaとApplyingViaで、instaceをimport-hidingができない問題を解決する
+
+```haskell
+!INCLUDE "./test/Data/Foo.hs"
+```
+
+```haskell
+!INCLUDE "./test/Mine/Somewhere.hs"
+```
+
+```haskell
+!INCLUDE "./test/Main.hs"
+```
