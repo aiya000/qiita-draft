@@ -7,4 +7,4 @@ import Mine.Somewhere
 main :: IO ()
 main = do
   print $ veryVeryBenri Baz    -- 必要な処理
-  print $ (Baz <> Bar) == Baz  -- Bazを期待する
+  print $ (Bazing Baz <> Bazing Bar) == Bazing Baz  -- Bazを期待する

@@ -1,4 +1,50 @@
-# DerivingViaとApplyingViaで、instaceをimport-hidingができない問題を解決する
+# Haskellでinstaceをimport-hidingができない問題を、文化的に解決する（DerivingVia・ApplyingVia）
+
+TODO: まとめ
+
+## 起
+
+現在のHaskellでは、`instance`へのimport-hidingができません。
+例を見てみましょう。
+
+```haskell
+module Data.Meiwaku where
+
+data Meiwaku = Meiwaku
+
+-- 絶対にimportしたい！　超便利な関数。
+veryVeryUseful :: Meiwaku -> Meiwaku
+veryVeryUseful Meiwaku = Meiwaku
+
+-- 絶対にimportしたくない！　突然の()インスタンス。
+instance Semigroup () where
+  _ <> _ = ()
+```
+
+```haskell
+module Main where
+
+import Data.Meiwaku (veryVeryUseful)
+
+main :: IO ()
+main = do
+  print $ () <> ()
+  print $ veryVeryUseful ()
+```
+
+これをコンパイルすると`instance Semigroup ()`が、Data.Semigroupで定義された`instance Semigroup ()`と重複して、コンパイルエラーが起きるでしょう。
+そう、`import Data.Meiwaku (veryVeryUseful)`は、はた迷惑な`instance Semigroup ()`をもimportしてしまうのです。
+
+しかしながら`veryVeryUseful`は絶対に使いたい。
+ならば`import Data.Meiwaku hiding (instance Semigroup ())`するのがよいでしょう。
+
+でもそれは、現在のHaskellではできません！
+
+## 承
+
+もう少しだけ、リアルワールド寄りな例を見てみます。
+
+古典的なデータ型に喧嘩を売るのは流石になさそうですが、以下のように、ライブラリが提供するデータ型に対するインスタンスを再定義したいことはあるかもしれません。
 
 ```haskell
 !INCLUDE "./test/Data/Foo.hs"
@@ -11,3 +57,29 @@
 ```haskell
 !INCLUDE "./test/Main.hs"
 ```
+
+```haskell
+Data/Foo.hs:8:10: error:
+    Duplicate instance declarations:
+      instance [safe] Semigroup Foo -- Defined at Data/Foo.hs:8:10
+      instance Semigroup Foo -- Defined at Mine/Somewhere.hs:7:10
+  |
+8 | instance Semigroup Foo where
+  |          ^^^^^^^^^^^^^
+```
+
+上述の通りinstanceへのimport-hidingができませんので、礼節のあるHaskell文化にならい、`newtype`を使って解決しましょう。
+
+（
+この文化は`Data.Semigroup`の`Sum`や`Product`等で使われています。
+（`instance Num a => Semigroup (Sum a)`・`instance Num a => Semigroup (Product a)`）
+）
+
+```haskell
+!INCLUDE "./fixed/Mine/Somewhere.hs"
+```
+
+```haskell
+!INCLUDE "./fixed/Main.hs"
+```
+
