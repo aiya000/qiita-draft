@@ -2,7 +2,7 @@
 module Data.Foo where
 
 data Foo = Bar | Baz
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- Barを優先する実装
 instance Semigroup Foo where

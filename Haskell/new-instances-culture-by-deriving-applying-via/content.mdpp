@@ -1,8 +1,10 @@
-# Haskellでinstaceをimport-hidingができない問題を、文化的に解決する（DerivingVia・ApplyingVia）
+# import-hiding-instaces問題の文化的な解決（ApplyingVia）
+
+Haskellでinstaceをimport-hidingができない問題を、文化的に解決する（DerivingVia・ApplyingVia）
 
 TODO: まとめ
 
-## 起
+## ここでの「**import hiding instances問題**」とは
 
 現在のHaskellでは、`instance`へのimport-hidingができません。
 例を見てみましょう。
@@ -24,38 +26,44 @@ instance Semigroup () where
 ```haskell
 module Main where
 
-import Data.Meiwaku (veryVeryUseful)
+import Data.Meiwaku (Meiwaku(..), veryVeryUseful)
 
 main :: IO ()
 main = do
+  print $ veryVeryUseful Meiwaku
   print $ () <> ()
-  print $ veryVeryUseful ()
 ```
 
-これをコンパイルすると`instance Semigroup ()`が、Data.Semigroupで定義された`instance Semigroup ()`と重複して、コンパイルエラーが起きるでしょう。
-そう、`import Data.Meiwaku (veryVeryUseful)`は、はた迷惑な`instance Semigroup ()`をもimportしてしまうのです。
+これをコンパイルすると、コンパイルエラーが起きるでしょう。
+`instance Semigroup ()`が、Data.Semigroupで定義された`instance Semigroup ()`と重複しているせいです。
+
+そう。
+`import Data.Meiwaku (veryVeryUseful)`は、はた迷惑な`instance Semigroup ()`をもimportしてしまうのです。
 
 しかしながら`veryVeryUseful`は絶対に使いたい。
 ならば`import Data.Meiwaku hiding (instance Semigroup ())`するのがよいでしょう。
 
 でもそれは、現在のHaskellではできません！
 
-## 承
+これをこの記事では「**import hiding instances問題**」と呼びます。
+
+## instanceをそのnewtypeに定義するようにする
 
 もう少しだけ、リアルワールド寄りな例を見てみます。
 
-古典的なデータ型に喧嘩を売るのは流石になさそうですが、以下のように、ライブラリが提供するデータ型に対するインスタンスを再定義したいことはあるかもしれません。
+`()`のような古典的なデータ型に喧嘩を売るのは、リアルワールドでは流石になさそうです。
+しかし以下のように、ライブラリが提供するデータ型に対するインスタンスを再定義したいことはあるかもしれません。
 
 ```haskell
-!INCLUDE "./test/Data/Foo.hs"
+!INCLUDE "./bad/Data/Foo.hs"
 ```
 
 ```haskell
-!INCLUDE "./test/Mine/Somewhere.hs"
+!INCLUDE "./bad/Mine/Somewhere.hs"
 ```
 
 ```haskell
-!INCLUDE "./test/Main.hs"
+!INCLUDE "./bad/Main.hs"
 ```
 
 ```haskell
@@ -72,14 +80,21 @@ Data/Foo.hs:8:10: error:
 
 （
 この文化は`Data.Semigroup`の`Sum`や`Product`等で使われています。
-（`instance Num a => Semigroup (Sum a)`・`instance Num a => Semigroup (Product a)`）
+
+- `instance Num a => Semigroup (Sum a)`
+- `instance Num a => Semigroup (Product a)`
 ）
 
 ```haskell
 !INCLUDE "./fixed/Mine/Somewhere.hs"
 ```
 
+:point_up: `Mine.Somewhere`でもFooの便利な性質（ここでの`Eq`）を使いたいので、`DerivingVia`を使います。DerivingViaにつきましては、下記のスライドのDerivingViaセクションをご覧ください。
+
+- [「しんさんきぼう」のDerivingストラテジー](https://aiya000.github.io/Maid/haskell-day-2019-deriving)
+
 ```haskell
 !INCLUDE "./fixed/Main.hs"
 ```
 
+これで、自前でFooモノイド（`instance Monoid Bazing`）を
