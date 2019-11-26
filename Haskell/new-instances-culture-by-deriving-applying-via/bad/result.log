@@ -1,0 +1,13 @@
+
+Main.hs:12:12: error:
+    • Overlapping instances for Semigroup Foo
+        arising from a use of ‘<>’
+      Matching instances:
+        instance [safe] Semigroup Foo -- Defined at Data/Foo/Bazing.hs:6:10
+        instance [safe] Semigroup Foo -- Defined at Data/Foo/Baring.hs:6:10
+    • In the first argument of ‘(==)’, namely ‘(Baz <> Bar)’
+      In the second argument of ‘($)’, namely ‘(Baz <> Bar) == Baz’
+      In a stmt of a 'do' block: print $ (Baz <> Bar) == Baz
+   |
+12 |   print $ (Baz <> Bar) == Baz      -- Bazを期待する
+   |            ^^^^^^^^^^

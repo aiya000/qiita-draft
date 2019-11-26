@@ -1,2 +1,3 @@
 run:
-	stack runghc -- Main.hs
+	[ -f result.log ] && rm result.log || true
+	stack runghc -- Main.hs 2>&1 | tee result.log

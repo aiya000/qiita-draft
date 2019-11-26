@@ -1,7 +1,6 @@
 {-# LANGUAGE DerivingVia #-}
 
--- 自分のプロジェクトの、あるモジュール
-module Mine.Somewhere where
+module Data.Foo.Bazing where
 
 import Data.Foo
 
@@ -14,3 +13,7 @@ instance Semigroup Bazing where
   (Bazing Baz) <> _ = Bazing Baz
   _ <> (Bazing Baz) = Bazing Baz
   _ <> _            = Bazing Bar
+
+-- importしたい関数
+veryVeryBenriBazing :: Foo -> Foo
+veryVeryBenriBazing _ = Baz

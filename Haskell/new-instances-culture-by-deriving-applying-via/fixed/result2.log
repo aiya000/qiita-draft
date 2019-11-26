@@ -1,0 +1,5 @@
+
+Main2.hs:1:14: error: Unsupported extension: ApplyingVia
+  |
+1 | {-# LANGUAGE ApplyingVia #-}
+  |              ^^^^^^^^^^^
