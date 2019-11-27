@@ -1,6 +1,22 @@
 # Haskellの「import-hiding-instaces問題」と「newtype-instance文化」
 
-TODO: まとめ
+この記事の想定読者レベル
+
+- Haskellに入門済み
+- Haskellの文化には詳しくない
+
+- - - - -
+
+こんにちHaskell〜〜。
+
+今日のHaskellではモジュールをimportしたときに
+
+- そのモジュールで定義されたあらゆるインスタンスも勝手にimportされてしまい
+- しかもそれを`hiding`することはできません
+
+。
+
+そこでこの記事では、その問題の具体例と、それを解決する**newtype-instance文化**を紹介します
 
 ## **import hiding instances問題**
 
@@ -88,12 +104,7 @@ main = do
 
 ### newtype-instance文化を導入する
 
-では、礼節のあるHaskell文化にならい、`newtype`を使って解決しましょう。
-
-この文化は`Data.Semigroup`の`Sum`や`Product`等で使われています。
-
-- `instance Num a => Semigroup (Sum a)`
-- `instance Num a => Semigroup (Product a)`
+ここで礼節のあるHaskell文化にならい、`newtype`を使って解決しましょう。
 
 ```haskell
 !INCLUDE "./fixed/Data/Foo/Baring.hs"
@@ -121,7 +132,19 @@ BaringとBazingでも、Fooの便利な性質（ここでの`Eq`）を使いた�
 
 このように、instanceの重複を避けるために、そのnewtypeにinstanceを定義することを、ここでは「**newtype-instance文化**」と呼びます。
 
-### おまけ - ApplyingVia
+この文化は`Data.Semigroup`の`Sum`や`Product`等で、広く使われています。
+
+- `instance Num a => Semigroup (Sum a)`
+- `instance Num a => Semigroup (Product a)`
+
+## 「import-hiding-instaces問題」「newtype-instance文化」とは
+
+Haskellではモジュールをimportしたときに、そのモジュールで定義されたあらゆるインスタンスも勝手にimportされてしまい、しかもそれを`hiding`することはできませんでした。
+それをここでは「import-hiding-instaces問題」と呼びました。
+
+それを解決するのが「newtype-instance文化」で、具体的には、ある型`Foo`に直接instanceを定義せず、そのnewtypeにinstanceを定義することでした！
+
+## おまけ - ApplyingVia
 
 でも私達が本当に作りたかったのは、`Semigroup Baring`と`Semigroup Bazing`という2つの型のインスタンスじゃなくて、ただひとつの型`Foo`への2つのインスタンスだったような？
 そこで`ApplyingVia`です。
@@ -145,6 +168,8 @@ BaringとBazingでも、Fooの便利な性質（ここでの`Eq`）を使いた�
 
 こうご期待。
 
-## 「import-hiding-instaces問題」「newtype-instance文化」とは
+- - - - -
 
-TODO: まとめ
+本稿で出てきたコードは、下記で実行可能です。
+
+https://github.com/aiya000/qiita-draft/tree/master/Haskell/new-instances-culture-by-deriving-applying-via

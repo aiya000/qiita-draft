@@ -4,7 +4,7 @@ build:
 	markdown-pp template.md -o content.md
 
 watch:
-	watchexec --exts mdpp,hs -- '$(MAKE) build && echo success || echo failure'
+	watchexec --exts md,hs -- '$(MAKE) build && echo success || echo failure'
 
 open:
 	grip --pass "$(github-token)" --browser content.md &

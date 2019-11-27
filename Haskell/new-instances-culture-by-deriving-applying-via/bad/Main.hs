@@ -3,7 +3,7 @@ module Main where
 
 import Data.Foo (Foo (..))
 import Data.Foo.Baring (veryVeryBenriBaring)
-import Data.Foo.Bazing (veryVeryBenriBazing)
+import Data.Foo.Bazing (veryVeryBenriBazing)  -- `instance Semigroup Bazing`をimport
 
 main :: IO ()
 main = do
