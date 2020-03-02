@@ -1,0 +1,1 @@
+../TypeScript/prettier.config.js
