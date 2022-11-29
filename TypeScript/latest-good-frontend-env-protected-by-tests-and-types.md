@@ -1,12 +1,9 @@
-# 型とテストに守られたナウなフロントエンド構築概要
+# 型とテストに守られたナウなフロントエンド環境構築概要
 ## はじめに
 
 この記事は :sparkles: [TypeScript Advent Calendar 2022](https://qiita.com/advent-calendar/2022/typescript) :sparkles: の、1日目の記事です！
 
-ここでは某所で作成している、ナウで堅牢な開発構成をただただ紹介します。
-
-起承転結などない。いいね？
-ｱｯﾊｲ
+ここでは某所で作成している、ナウで堅牢な開発構成を紹介します！
 
 ## 結論
 
@@ -20,7 +17,7 @@
 - Tests
     - Unit Tests: vitest
     - E2E Tests: Playwright
-        - vitestとplaywrightのうまい繋ぎ方が見つからなかったため、vitestは使わずに開発サーバー（`yarn dev`）のDOMを直接叩いている
+        - vitestとplaywrightのうまい繋ぎ方が見つからなかったため、vitestは使わずに開発サーバー（`nuxi dev`）のDOMを直接叩いている
             - 一周回って「E2Eテストだし、逆にユーザーエンドに近いのでは」と思っている
 
 ## 解説
@@ -30,6 +27,9 @@
 ここでNuxt.jsの利点や詳細は省略しますが、ディレクトリ構成に沿った自動ルーティングや、`@/components`・`@/composables`の自動`import`ができる等、開発DXのかなり高いフロントエンドフレームワークになっています。
 
 ```typescript:@/composables/useExample.ts
+// ↓ 必要ない
+// import { useState } from '#imports'
+
 import { Ref } from 'vue'
 
 export type Example = {
@@ -69,7 +69,7 @@ onMounted(async () => {
 <blockquote class="twitter-tweet"><p lang="ja" dir="ltr">【Nuxt 3、ついに登場】<br><br>＼📣Nuxt 3の正式リリース日は11/16（水）です！／ <a href="https://t.co/DhFAtox0IZ">https://t.co/DhFAtox0IZ</a></p>&mdash; NuxtLabs Japan by ZEN Advisor (@zen_nuxtlabs_jp) <a href="https://twitter.com/zen_nuxtlabs_jp/status/1591234325940412416?ref_src=twsrc%5Etfw">November 12, 2022</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 もちろんTypeScriptも使っています。
-ここで必要な人間部品として、僕は本環境の「`as`・`any`などのunsafeコ□すマン」として活動しています。
+ここで必要な人間部品として、僕は本環境の「`as`・`any`などの**unsafeをコ□すマン**」として活動しています。
 
 TypeScriptはunsafeの温床で、レビューで叩き落としていかない限り、**自然に型と値のふるまいが乖離していきます**。
 絶対unsafeコ□していこうな。
@@ -82,7 +82,7 @@ composablesで十分だと考えているからです。
 `useState()`いいぞ～！
 
 `<script setup>`はもしかしたら知らない人がいるかもしれません。
-これはVue3の`setup()`を**かなり**簡潔に書ける素晴らしい機能です。
+これは**Vue3の`setup()`をかなり簡潔に書ける素晴らしい機能です**。
 
 Svelteの`<script>`に似ているかもしれません。
 Svelteを知らない？
@@ -97,6 +97,7 @@ Liter三銃士！？
 
 やはりコーディングルールは自動化されていなければいけません。
 ということで某所でも、`eslint, stylelint, prettier`で自動化をしています。
+B
 
 eslintの`"extends"`はこのように、堅牢にしています。
 
@@ -245,5 +246,11 @@ vitestとplaywrightはまだ連携できないけど、ほら、E2Eテストだ�
 
 ## 終わり
 
-なかなかいい環境にできたと思います。
-開発が楽しいベース作りをしよう！
+以上が「型とテストに守られたナウなフロントエンド環境」でした！
+
+Nuxt3は開発DXのかなり高いフレームワークで、unsafeの駆逐されたTypeScriptは最高の言語。
+vitestとplaywrightもとても書きやすいテスティングフレームワークでした。
+
+これからも俺たちフロントエンドエンジニアの、ナウを追い求める戦いは終わらない！
+
+**完**
