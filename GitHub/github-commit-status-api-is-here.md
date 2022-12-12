@@ -84,3 +84,7 @@ curl -X POST \
 ## 終わりに
 
 GitHub氏、その設計でよかったんか？ :thinking_face:
+
+次回、「PRにコメントするにはIssue Comment APIを使う」の巻！！
+
+- [Issueのコメント - GitHub Docs](https://docs.github.com/ja/rest/issues/comments?apiVersion=2022-11-28)
