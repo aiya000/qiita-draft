@@ -1,19 +1,21 @@
-# TypeScriptの{readonly a: number}型で、aプロパティが変更不可になると思っている人はいますか？
+# 【TypeScript】const x: {readonly a: number}でも、aプロパティは変更不可にはならない
 
 こんにちは。
 最近Haskellを書いていない、型エンジニアのaiya000です！
 
-皆さんは下記コードの`readonly`で、`y.a`は変更されることがないと思っていませんか？
-残念ですが、それは**間違い**です！
+皆さんは下記コードの`readonly`で、`x.a`は変更されることがないと思っていませんか？
+残念ですが……完全には**そうはなりません**……。
+
+ちなみにここで`x.a`を変更するには、`as`などの[unsafe](https://qiita.com/kgtkr/items/1c136e1e4ccee8928bc8)な操作は必要としません。
 
 ```typescript
-const y: { readonly a: number } = { a: 42 }
+const x: { readonly a: number } = { a: 42 }
 ```
 
 # `const`と`readonly`とは？
 ## `const`
 
-上述のコードの`y.a`は、ある方法で変更され得ります。
+上述のコードの`x.a`は、ある方法で変更され得ります。
 しかし本来は**変更されるべきではない**です。
 
 どうして上述のコードが不変であるべきなのか、改めて再確認してみましょう。
