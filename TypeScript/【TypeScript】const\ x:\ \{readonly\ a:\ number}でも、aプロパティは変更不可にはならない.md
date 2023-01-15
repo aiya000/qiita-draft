@@ -1,4 +1,4 @@
-# 【TypeScript】const x: {readonly a: number}でも、aプロパティは変更不可にはならない（as,any,unsafeはなし）
+# 最速TypeScript静的型付け不健全プログラミング～readonlyプロパティに値を再代入する～
 
 こんにちは。
 最近Haskellを書いていない、型エンジニアのaiya000です！
@@ -6,13 +6,13 @@
 皆さんは下記コードの`readonly`で、`x.a`は変更されることがないと思っていませんか？
 残念ですが……完全には**そうはなりません**……。
 
-TypeScriptの静的型付けの方針（？）で、静的に代入を許すことができてしまいます。
-
 ```typescript
 const x: { readonly a: number } = { a: 42 }
 ```
 
-ここで`x.a`を変更するには、`as`などの[unsafe](https://qiita.com/kgtkr/items/1c136e1e4ccee8928bc8)な操作は必要としません。
+TypeScriptの静的型付けの方針（？）で、静的に代入を許すことができてしまいます。
+
+しかもここで紹介する、`x.a`を変更する方法では、`as`などの[unsafe](https://qiita.com/kgtkr/items/1c136e1e4ccee8928bc8)な操作は必要としません。
 
 # 結論
 
@@ -26,7 +26,7 @@ const y: { a: number } = x
 // x.aが変更されている
 y.a = 10
 
-console.log(y) // { a: 10 }
+console.log(x) // { a: 10 }
 
 // コンパイルエラーはない
 ```
@@ -178,7 +178,7 @@ const y: { a: number } = x
 // x.aが変更されている
 y.a = 10
 
-console.log(y) // { a: 10 }
+console.log(x) // { a: 10 }
 
 // コンパイルエラーはない
 ```
@@ -191,7 +191,7 @@ const y: { a: number } = x
 
 y.a = 10
 
-console.log(y)
+console.log(x)
 
 // コンパイルエラーはない
 ```
@@ -209,3 +209,4 @@ y.a = 10
 ```
 
 TypeScriptの`{readonly a: number}`型では、`a`プロパティは**変更不可になりません**！
+
