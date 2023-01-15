@@ -31,7 +31,9 @@ console.log(x) // { a: 10 }
 // コンパイルエラーはない
 ```
 
-`{ a: number} extends { readonly a: number }`ということです。
+`{ a: number } extends { readonly a: number }`になっているから
+
+= `{ a: number }`の変数に`{ readonly a: number }`の値を代入できるからです！
 
 # 読み始める前に
 
@@ -153,16 +155,21 @@ f(x)
 console.log(x)
 ```
 
-具体的には`{ readonly a: number} extends { a: number }`であるべきで、
-`{ a: number} extends { readonly a: number }`であるべきではありません。
+具体的には`{ readonly a: number } extends { a: number }`であるべきで、
+`{ a: number } extends { readonly a: number }`であるべきではありません。
 
 ……
 
-もうわかりましたね。
-そう、このコード`illegal.ts`は、TypeScriptではコンパイルエラーになりません！
+勘のいい人は気づいてしまったかもしれません。
 
-`{ readonly a: number} extends { a: number }`かつ
-`{ a: number} extends { readonly a: number }`だからです！
+このコード`illegal.ts`は、現在のTypeScriptではコンパイルエラーになりません！
+[結論](#結論)で申し上げた通り、`{ a: number } extends { readonly a: number }`だからです！
+
+（
+これは本来、そうあるべきではない挙動です。
+Kotlinが`MutableList`の変数に（Immutale）`List`の値を代入できないように、
+つまり`{ a: number }`の変数に`{ readonly a: number }`の値を代入できるべきではないのです。
+）
 
 # まとめ
 
