@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(notify-send:*)",
+      "Bash(notify:*)",
+      "Bash(~/.dotfiles/bin/notifu-respond:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
